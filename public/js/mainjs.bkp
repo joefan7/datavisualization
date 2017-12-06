@@ -1,0 +1,153 @@
+d3.json("../dat/workout-datav2.json", function (error, data) {
+    if (error) return console.warn(error);
+
+    function print_filter(filter) {
+        var f = eval(filter);
+        if (typeof (f.length) != "undefined") { } else { }
+        if (typeof (f.top) != "undefined") { f = f.top(Infinity); } else { }
+        if (typeof (f.dimension) != "undefined") { f = f.dimension(function (d) { return ""; }).top(Infinity); } else { }
+        console.log(filter + "(" + f.length + ") = " + JSON.stringify(f).replace("[", "[\n\t").replace(/}\,/g, "},\n\t").replace("]", "\n]"));
+    }
+
+    // flatten JSON data, reformat milliseconds, populate map coordinates.
+    var flatData = [];
+    var centerFound = false;
+    var coordArray = [];
+    var centerVal = [];
+    
+    data.forEach(function (d) {
+        flatData.push({
+            seconds: Math.floor(d.millisecondOffset / 1000),
+            // heartRate: d.values.heartRate,
+            // cadence: d.values.cadence,
+            power: d.values.power,
+            // temperature: d.values.temperature,
+            // elevation: d.values.elevation,
+            // distance: d.values.distance,
+            // speed: d.values.speed,
+            positionLat: d.values.positionLat,
+            positionLong: d.values.positionLong
+        });
+    });
+    console.log(flatData);
+    var facts = crossfilter(flatData),
+        timeDimension = facts.dimension(function (d) { return d.seconds; }),
+        timeGroup = timeDimension.group(),
+        powerGroup = timeDimension.group().reduceSum(function (d) { return d.power; });
+
+    var minTime = timeDimension.bottom(1)[0].seconds;
+    var maxTime = timeDimension.top(1)[0].seconds;
+
+    var timeChart = dc.barChart("#range-chart")
+        .width(1360)
+        .height(100)
+        .brushOn(true)
+        .x(d3.scale.linear().domain([minTime, maxTime]))
+        .xAxisLabel("Time in Seconds - Click and drag to filter on subset")
+        .margins({ top: 0, bottom: 70, right: 10, left: 50 })
+        .dimension(timeDimension)
+        .group(timeGroup);
+
+    timeChart.xAxis().ticks(60);
+    timeChart.yAxis().ticks(0).outerTickSize(0);
+    // timeChart.render();
+
+    var lineChart = dc.lineChart("#chart")
+        .elasticX(false)
+        .width(1360)
+        .height(200)
+        .x(d3.scale.linear().domain([minTime, maxTime]))
+        .renderArea(false)
+        .brushOn(false)
+        .rangeChart(timeChart)
+        .renderDataPoints(true)
+        .clipPadding(10)
+        .yAxisLabel("Power")
+        .margins({ top: 10, bottom: 30, right: 10, left: 50 })
+        .dimension(timeDimension)
+        .group(powerGroup)
+        .renderHorizontalGridLines(true)
+        ;
+
+    lineChart.xAxis().ticks(30);
+    lineChart.yAxis().ticks(10);
+    dc.renderAll();
+    dc.redrawAll();
+
+    // rotate xAxis tich labels
+    lineChart.selectAll('g.x text').attr('transform', function (d) { return 'translate(-20,10) rotate(-45)'; });
+    timeChart.selectAll('g.x text').attr('transform', function (d) { return 'translate(-20,10) rotate(-45)'; });
+
+    // console.log(data);
+    // console.log(timeDimension);
+    // print_filter('timeGroup');
+
+});
+// ---------- map population ---------------
+mapboxgl.accessToken = 'pk.eyJ1Ijoiam9lZmFuIiwiYSI6ImNqYXEyNjNmcjB5Z24zM3Bmb28xMTZheXcifQ.DerF56MyqO8R5UQAhQC2XQ';
+var request;
+if (window.XMLHttpRequest) {
+    request = new XMLHttpRequest();
+} else {
+    request = new ActiveXObject("Microsoft.XMLHTTP");
+}
+// Read JSON file
+request.open('GET', '../dat/workout-data.json');
+request.onreadystatechange = function () {
+    if ((request.status === 200) && (request.readyState === 4)) {
+        var testObject = JSON.parse(request.responseText);
+        var centerFound = false;
+        var coordArray = [];
+        var centerVal = [];
+
+        // Find starting point of route for centering map
+        // Populate coordinate array with all gps LongLat data
+        for (var key in testObject.samples) {
+            if (testObject.samples.hasOwnProperty(key)) {
+                if (isNaN(testObject.samples[key].values.positionLat) === false) {
+                    if (centerFound === false) { //first set of coordinates in JSON data
+                        centerVal = ([testObject.samples[key].values.positionLong, testObject.samples[key].values.positionLat]);
+                        var map = new mapboxgl.Map({
+                            container: 'map',
+                            style: 'mapbox://styles/mapbox/streets-v9',
+                            center: centerVal,
+                            zoom: 11
+                        });
+                        centerFound = true;
+                    }
+                    coordArray.push([testObject.samples[key].values.positionLong, testObject.samples[key].values.positionLat]);
+                }
+            }
+        }
+
+        // Render Map with GPS Route
+        map.on('load', function () {
+            
+                map.addLayer({
+                    "id": "route",
+                    "type": "line",
+                    "source": {
+                        "type": "geojson",
+                        "data": {
+                            "type": "Feature",
+                            "properties": {},
+                            "geometry": {
+                                "type": "LineString",
+                                "coordinates": coordArray
+                            }
+                        }
+                    },
+                    "layout": {
+                        "line-join": "round",
+                        "line-cap": "round"
+                    },
+                    "paint": {
+                        "line-color": "#888",
+                        "line-width": 8
+                    }
+                });
+            });
+    }
+};
+
+request.send();

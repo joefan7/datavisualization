@@ -1,0 +1,34 @@
+body, html {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+div {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+h2 {
+  font-family: helvetica;
+  font-weight: 100;
+  color: grey;
+  font-size: 20;
+  margin-left: 20px;
+}
+
+div#chart svg g g.axis g.tick text {
+    font-size: 8pt;
+}
+
+div.dc-data-count {
+  width: 100%;
+  margin-left: 20px;
+  color: rgb(37, 141, 33);
+}
+
+span.reset {
+  margin-left: 20px;
+  color: maroon;
+}

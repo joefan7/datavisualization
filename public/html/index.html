@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>PeaksWare Code Test Solution</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+        <!-- MapBox api and css -->
+        <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.42.2/mapbox-gl.js'></script>
+        <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.42.2/mapbox-gl.css' rel='stylesheet' />
+    <!-- dc data visualization css -->
+    <link rel="stylesheet" type="text/css" href="../css/dc.css" />
+    <!-- main.css -->
+    <link rel="stylesheet" type="text/css" href="../css/main.css" />
+</head>
+
+<body>
+    <h2>TrainingPeaks Data tied To GeoJson Map</h2>
+    <div class='dc-data-count'></div>
+    <di id="chart">
+        <span class="reset" style="display: none;">Range: <span class="filter"></span> seconds </span><br>
+    </di>
+    <div id="range-chart">
+    </div>
+
+    <div id='map' style='width: 1360px; height: 500px; margin-left: 20px;'></div>
+
+    <!-- Scripts  -->
+    <!-- data visualization scripts -->
+    <script type="text/javascript" src="../js/d3.js"></script>
+    <script type="text/javascript" src="../js/crossfilter.js"></script>
+    <script type="text/javascript" src="../js/dc.js"></script>
+    <!-- main.js -->
+    <script type="text/javascript" src="../js/main.js"></script>
+</body>
+
+</html>
