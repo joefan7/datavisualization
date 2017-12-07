@@ -3,12 +3,13 @@ mapboxgl.accessToken = 'pk.eyJ1Ijoiam9lZmFuIiwiYSI6ImNqYXEyNjNmcjB5Z24zM3Bmb28xM
 d3.json("../dat/workout-datav2.json", function (error, data) {
     if (error) return console.warn(error);
 
-    // flatten JSON data, reformat milliseconds, populate map coordinates.
     var flatData = [];
+    var filterArray = [];
     var centerFound = false;
     var coordArray = [];
     var centerVal = [];
-
+    
+    // flatten JSON data, reformat milliseconds, populate map coordinates.  
     data.forEach(function (d) {
         flatData.push({
             seconds: Math.floor(d.millisecondOffset / 1000),
@@ -26,7 +27,6 @@ d3.json("../dat/workout-datav2.json", function (error, data) {
             if (centerFound === false) { //first set of coordinates in JSON data
                 centerVal = ([d.values.positionLong, d.values.positionLat]);
                 centerFound = true;
-                // renderMapCenter(centerVal);
             }
             coordArray.push([d.values.positionLong, d.values.positionLat]);
         }
@@ -42,13 +42,13 @@ d3.json("../dat/workout-datav2.json", function (error, data) {
     renderGeoJsonLine(coordArray);
 
     function renderMapCenter(center) {
-        console.log("renderMapCenter Executing");
         var map = new mapboxgl.Map({
             container: 'map',
             style: 'mapbox://styles/mapbox/streets-v9',
             center: center,
             zoom: 11
         });
+        renderGeoJsonLine(filterArray);
     }
 
     function renderGeoJsonLine(coordinateArray) {
@@ -72,16 +72,19 @@ d3.json("../dat/workout-datav2.json", function (error, data) {
                     "line-cap": "round"
                 },
                 "paint": {
-                    "line-color": "#888",
+                    "line-color": "#FF0000",
                     "line-width": 8
                 }
             });
         });
     }
+
+    //------- GPS Charts
     var facts = crossfilter(flatData),
         timeDimension = facts.dimension(function (d) { return d.seconds; }),
         timeGroup = timeDimension.group(),
-        powerGroup = timeDimension.group().reduceSum(function (d) { return d.power; })
+        powerGroup = timeDimension.group().reduceSum(function (d) { return d.power; });
+
     var all = facts.groupAll();
 
     var minTime = timeDimension.bottom(1)[0].seconds;
@@ -107,7 +110,7 @@ d3.json("../dat/workout-datav2.json", function (error, data) {
 
     timeChart.xAxis().ticks(30);
     timeChart.yAxis().ticks(0).outerTickSize(0);
-        
+
     var lineChart = dc.lineChart("#chart")
         .elasticX(false)
         .width(1360)
@@ -124,7 +127,7 @@ d3.json("../dat/workout-datav2.json", function (error, data) {
         .group(powerGroup)
         .renderHorizontalGridLines(true)
         ;
-       
+
     lineChart.xAxis().ticks(30);
     lineChart.yAxis().ticks(10);
     dc.renderAll();
@@ -133,12 +136,32 @@ d3.json("../dat/workout-datav2.json", function (error, data) {
     // rotate xAxis tich labels
     lineChart.selectAll('g.x text').attr('transform', function (d) { return 'translate(-20,10) rotate(-45)'; });
     timeChart.selectAll('g.x text').attr('transform', function (d) { return 'translate(-20,10) rotate(-45)'; });
-        
-    
-    timeChart.on("renderlet",function(chart){
-        dc.events.trigger(function() {
-            console.log(timeChart.filters()["0"]);
+    timeChart.on("renderlet", function (chart) {
+        dc.events.trigger(function () {
+            if (timeChart.filters()['0']) {
+                // console.log(timeChart.filters()['0'][0]);
+                // console.log(timeChart.filters()['0'][1]);
+                var lowRange = timeChart.filters()['0'][0];
+                var highRange = timeChart.filters()['0'][1];
+                renderFilteredMap(lowRange, highRange);
+            }
         });
     });
 
+    function renderFilteredMap(low, high) {
+        filterArray = [];
+        var lowS = Math.floor(low);
+        var highS = Math.floor(high);
+        for (var i = 0; i < flatData.length; i++) { // needs refactoring 
+            if (flatData[i].seconds >= lowS && flatData[i].seconds <= highS) {
+                // console.log(flatData[i].seconds);
+                // console.log(flatData[i].positionLong);
+                // console.log(flatData[i].positionLat);
+                if (flatData[i].positionLat !== undefined) {
+                    filterArray.push([flatData[i].positionLong, flatData[i].positionLat]);
+                }
+            }
+        }
+        renderMapCenter(centerVal);
+    };
 });
